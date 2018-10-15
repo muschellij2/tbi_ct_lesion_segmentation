@@ -41,7 +41,6 @@ def get_intersection(a, b):
     start_time = time()
     print(np.array(a).shape)
     print(np.array(b).shape)
-
     if len(a) == 3:
         # first change format to be a list of coordinates rather than one list per dimension
         a_reformat = [(x, y, z) for x, y, z in zip(a[0], a[1], a[2])]
@@ -51,11 +50,9 @@ def get_intersection(a, b):
         b_reformat = [(x, y) for x, y in zip(b[0], b[1])]
     else:  # TODO: proper error handling
         print("Shape mismatch")
-
     intersection = set(a_reformat) & set(b_reformat)
     print("Time taken to calculate intersection:",
           time() - start_time, "seconds")
-
     return intersection
 
 
@@ -72,7 +69,6 @@ def get_center_coords(ct, mask, ratio):
         - healthy_coords: set of tuples of rank 3, coordinates of healthy voxels
         - lesion_coords: set of tuples of rank 3, coordinates of lesion voxels
     '''
-
     # These first two must be shuffled.
     if ratio == 1:
         # ct-valid patches
@@ -103,22 +99,18 @@ def get_center_coords(ct, mask, ratio):
         lesion_coords = set([(x, y, z) for x, y, z in zip(lesion_coords[0],
                                                           lesion_coords[1],
                                                           lesion_coords[2])])
-
     return healthy_coords, lesion_coords
 
 
 def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     rng = random.SystemRandom()
-
     mask = np.asarray(mask, dtype=np.float32)
     patch_size = np.asarray(patchsize, dtype=int)
     dsize = np.floor(patchsize/2).astype(dtype=int)
-
     # find indices of all lesions in mask volume
     mask_lesion_indices = np.nonzero(mask)
     mask_lesion_indices = np.asarray(mask_lesion_indices, dtype=int)
     total_lesion_patches = len(mask_lesion_indices[0])
-
     num_patches = np.minimum(maxpatch, total_lesion_patches)
     '''
     print("Number of patches used: {} out of {} (max: {})"
@@ -126,7 +118,6 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
                   total_lesion_patches,
                   maxpatch))
     '''
-
     randidx = rng.sample(range(0, total_lesion_patches), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
     shuffled_mask_lesion_indices = np.ndarray((3, num_patches))
@@ -136,17 +127,14 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
                                          i] = mask_lesion_indices[j, randidx[i]]
     shuffled_mask_lesion_indices = np.asarray(
         shuffled_mask_lesion_indices, dtype=int)
-
     # mask out all lesion indices to get all healthy indices
     tmp = copy.deepcopy(invols[0])
     tmp[tmp > 0] = 1
     tmp[tmp <= 0] = 0
     tmp = np.multiply(tmp, 1-mask)
-
     healthy_brain_indices = np.nonzero(tmp)
     healthy_brain_indices = np.asarray(healthy_brain_indices, dtype=int)
     num_healthy_indices = len(healthy_brain_indices[0])
-
     randidx0 = rng.sample(range(0, num_healthy_indices), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
     shuffled_healthy_brain_indices = np.ndarray((3, num_patches))
@@ -156,22 +144,16 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
                                            i] = healthy_brain_indices[j, randidx0[i]]
     shuffled_healthy_brain_indices = np.asarray(
         shuffled_healthy_brain_indices, dtype=int)
-
     newidx = np.concatenate([shuffled_mask_lesion_indices,
                              shuffled_healthy_brain_indices], axis=1)
-
     CT_matsize = (2*num_patches, patchsize[0], patchsize[1], num_channels)
     Mask_matsize = (2*num_patches, patchsize[0], patchsize[1], 1)
-
     CTPatches = np.ndarray(CT_matsize, dtype=np.float16)
     MaskPatches = np.ndarray(Mask_matsize, dtype=np.float16)
-
     for i in range(0, 2*num_patches):
         I = newidx[0, i]
         J = newidx[1, i]
         K = newidx[2, i]
-        
-
         for c in range(num_channels):
             '''
             CTPatches[i, :, :, c] = invols[c][I - dsize[0]: I + dsize[0] + 1,
@@ -182,7 +164,6 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
             CTPatches[i, :, :, c] = invols[c][I - dsize[0]: I + dsize[0],
                                               J - dsize[1]: J + dsize[1],
                                               K]
-
         '''
         MaskPatches[i, :, :, 0] = mask[I - dsize[0]: I + dsize[0] + 1,
                                        J - dsize[1]:J + dsize[1] + 1,
@@ -192,10 +173,8 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
         MaskPatches[i, :, :, 0] = mask[I - dsize[0]: I + dsize[0],
                                        J - dsize[1]:J + dsize[1],
                                        K]
-
     CTPatches = np.asarray(CTPatches, dtype=np.float16)
     MaskPatches = np.asarray(MaskPatches, dtype=np.float16)
-
     return CTPatches, MaskPatches
 
 
