@@ -1,5 +1,7 @@
 from time import strftime
+from datetime import datetime
 from urllib.request import urlopen
+from urllib.error import URLError
 
 from .skullstrip import skullstrip
 from .reorient import orient, reorient
@@ -144,6 +146,11 @@ def parse_args(session):
         parser.add_argument('--weights', required=True, action='store', 
                             dest='weights',
                             help='Learnt weights on axial plane (.hdf5) file')
+    elif session == "calc_dice":
+        parser.add_argument('--gt_dir', required=True, action='store', dest='GT_DATA_DIR',
+                            help='Where the manual masks are')
+        parser.add_argument('--indata', required=True, action='store', dest='IN_DATA',
+                            help='Predicted data, either a file or directory')
     else:
         print("Invalid session. Must be one of \"train\", \"validate\", or \"test\"")
         sys.exit()
@@ -167,11 +174,15 @@ def now():
     Formats time for use in the log file
     Pulls time from internet in UTC to sync properly
     '''
-    res = urlopen('http://just-the-time.appspot.com/')
-    result = res.read().strip()
-    result_str = result.decode('utf-8')
-    result_str = result_str.split()
-    result_str = '_'.join(result_str)
+    try:
+        res = urlopen('http://just-the-time.appspot.com/')
+        result = res.read().strip()
+        result_str = result.decode('utf-8')
+        result_str = result_str.split()
+        result_str = '_'.join(result_str)
+    except URLError as err:
+        result_str = strftime("%Y-%m-%d_%H:%M:%S", datetime.now())
+
     return result_str
 
 
